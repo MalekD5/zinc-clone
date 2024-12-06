@@ -3,13 +3,13 @@ import {
 	boolean,
 	integer,
 	pgTable,
-	serial,
 	text,
 	timestamp,
 } from "drizzle-orm/pg-core";
+import { nanoid } from "nanoid";
 
 export const userTable = pgTable("user", {
-	id: serial("id").primaryKey(),
+	id: text("id").default(nanoid(12)).primaryKey(),
 	email: text("email").notNull(),
 	displayName: text("display_name").notNull(),
 	hashedPassword: text("hashed_password").notNull(),
