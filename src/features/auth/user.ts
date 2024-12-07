@@ -34,9 +34,13 @@ export async function createUser(
 }
 
 export async function getUserById(id: string) {
-	return await db.select().from(userTable).where(eq(userTable.id, id));
+	return await safePromise(
+		db.select().from(userTable).where(eq(userTable.id, id)),
+	);
 }
 
 export async function getUserByEmail(email: string) {
-	return await db.select().from(userTable).where(eq(userTable.email, email));
+	return await safePromise(
+		db.select().from(userTable).where(eq(userTable.email, email)),
+	);
 }
