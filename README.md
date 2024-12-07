@@ -27,6 +27,7 @@ Here is a brief overview of the project structure (src folder):
 ├── features
 ├── db
 ├── lib
+├── tests
 └── types
 ```
 ### Folder Description
@@ -41,4 +42,5 @@ Here is a brief description of each folder:
  - :sparkles: **features**: features that are used to compose pages
  - :oil_drum: **db**: contains database connection and schemas
  - :hammer_and_wrench: **lib**: reusable code that is used across the app
+ - :test_tube: **tests**: unit tests and integration tests
  - :label: **types**: typescript types that are usable across the app
