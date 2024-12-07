@@ -1,5 +1,5 @@
 # ZincJo Platform Clone
-This is a clone of the [ZincJo](https://zincjo.com/) platform. It is built with [Next.js](https://nextjs.org/) and [Tailwind CSS](https://tailwindcss.com/).
+This is a clone of the [ZincJo](https://zinc.jo/) platform. It is built with [Next.js](https://nextjs.org/) and [Tailwind CSS](https://tailwindcss.com/).
 
 ## Features
 - Authentication (OAuth, 2FA, email verification, password reset)
