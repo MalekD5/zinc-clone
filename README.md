@@ -38,7 +38,7 @@ Here is a brief description of each folder:
    - :evergreen_tree: **organisms**: larger components that are composed of smaller components
    - :world_map: **templates**: pages that are composed of organisms
    - :page_facing_up: **pages**: the real representative content in place of templates
- - :sparkles: **features**: features that are used to compose pages ``
+ - :sparkles: **features**: features that are used to compose pages
  - :oil_drum: **db**: contains database connection and schemas
  - :hammer_and_wrench: **lib**: reusable code that is used across the app
  - :label: **types**: typescript types that are usable across the app
