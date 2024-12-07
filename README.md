@@ -3,8 +3,8 @@ This is a clone of the [ZincJo](https://zinc.jo/) platform. It is built with [Ne
 
 ## Features
 - Authentication (OAuth, 2FA, email verification, password reset)
-- Profile Page
-- Posts, Meetings, Events, Surveys, Bookings Page
+- Profile Management
+- Posts, Meetings, Events, Surveys, Bookings
 - Private Messages
 
 ## Project Structure and Methodologies
