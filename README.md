@@ -22,13 +22,13 @@ Here is a brief overview of the project structure (src folder):
 │   ├── atoms
 │   ├── molecules
 │   ├── organisms
-│   ├── templates
 │   └── pages
 ├── features
 ├── db
 ├── lib
-├── tests
-└── types
+├── styles
+├── types
+└── tests
 ```
 ### Folder Description
 Here is a brief description of each folder:
@@ -37,10 +37,10 @@ Here is a brief description of each folder:
    - :atom_symbol: **atoms**: styled html elements (ui components like buttons, inputs, etc)
    - :dna: **molecules**: small components that are used to compose larger components
    - :evergreen_tree: **organisms**: larger components that are composed of smaller components
-   - :world_map: **templates**: pages that are composed of organisms
-   - :page_facing_up: **pages**: the real representative content in place of templates
+   - :page_facing_up: **pages**: the real representative content in place of the composed of organisms
  - :sparkles: **features**: features that are used to compose pages
  - :oil_drum: **db**: contains database connection and schemas
  - :hammer_and_wrench: **lib**: reusable code that is used across the app
  - :test_tube: **tests**: unit tests and integration tests
+ - :art: **styles**: extra styles that can't be done through tailwindcss
  - :label: **types**: typescript types that are usable across the app
