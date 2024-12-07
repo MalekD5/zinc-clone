@@ -7,10 +7,30 @@ This is a clone of the [ZincJo](https://zincjo.com/) platform. It is built with 
 - Posts, Meetings, Events, Surveys, Bookings Page
 - Private Messages
 
-## Project Structure
+## Project Structure and Methodologies
 This structure is mostly made through combining multiple approaches, from the official [Next.js](https://nextjs.org/) docs, [shadcn UI](https://ui.shadcn.com/) docs, and the [Atomic Design Approach](https://bradfrost.com/blog/post/atomic-web-design/) blog post.
 
-The main idea is to have a structure that is easy to navigate and understand, and that is also scalable. Here is a brief overview of the project structure:
+
+
+The main idea is to have a structure that is easy to navigate and understand, and that is also scalable. 
+
+### Folder Tree
+Here is a brief overview of the project structure (src folder):
+```bash
+├── app
+├── components
+│   ├── atoms
+│   ├── molecules
+│   ├── organisms
+│   ├── templates
+│   └── pages
+├── features
+├── db
+├── lib
+└── types
+```
+### Folder Description
+Here is a brief description of each folder:
  - :globe_with_meridians: **app**: the 'view' layer
  - :jigsaw: **components**: reusable components, follows *Atomic Design Approach*:
    - :atom_symbol: **atoms**: styled html elements (ui components like buttons, inputs, etc)
