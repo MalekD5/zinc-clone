@@ -2,7 +2,13 @@ import "server-only";
 
 import { db } from "@/db/drizzle";
 import { type Session, type User, sessionTable, userTable } from "@/db/schema";
-import { safePromise } from "@/lib/error";
+import {
+	type AsyncWatcherResult,
+	type AsyncWatcherResultEmpty,
+	Watcher,
+	watcherOk,
+	watcherOkEmpty,
+} from "@/lib/watcher";
 import { sha256 } from "@oslojs/crypto/sha2";
 import {
 	encodeBase32LowerCaseNoPadding,
@@ -23,7 +29,7 @@ export async function createSession(
 	token: string,
 	userId: number,
 	flags: SessionFlags,
-): Promise<Result<Session>> {
+): AsyncWatcherResult<Session> {
 	const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
 	const session: Session = {
 		id: sessionId,
@@ -31,24 +37,24 @@ export async function createSession(
 		expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
 		twoFactorVerified: flags.twoFactorVerified,
 	};
-	const [error] = await safePromise(db.insert(sessionTable).values(session));
-	if (error) {
-		return {
-			ok: false,
-			error,
-		};
-	}
-	return {
-		ok: true,
-		data: session,
-	};
+
+	const insertResult = await Watcher.instance(
+		db.insert(sessionTable).values(session),
+	);
+
+	// either maps to a session or safe error result
+	const mappedInsertResult = insertResult.map((_) => session);
+
+	// session or safe error result
+	return mappedInsertResult.get();
 }
 
 export async function validateSessionToken(
 	token: string,
-): Promise<[Error] | [undefined, SessionValidationResult]> {
+): AsyncWatcherResult<SessionValidationResult> {
 	const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
-	const [error, result] = await safePromise(
+
+	const activeSessionsInstance = await Watcher.instance(
 		db
 			.select({ user: userTable, session: sessionTable })
 			.from(sessionTable)
@@ -56,80 +62,80 @@ export async function validateSessionToken(
 			.where(eq(sessionTable.id, sessionId)),
 	);
 
-	if (error) {
-		return [error];
+	const activeSessions = activeSessionsInstance.get();
+
+	if (!activeSessions.success) {
+		return activeSessions;
 	}
 
-	if (result.length < 1) {
-		return [
-			undefined,
-			{
+	const resultingSession = activeSessions.value[0];
+
+	if (!resultingSession) {
+		return {
+			success: true,
+			value: {
 				session: null,
 				user: null,
 			},
-		];
+		};
 	}
 
-	const { user, session } = result[0];
+	const { user, session } = resultingSession;
 
 	if (Date.now() >= session.expiresAt.getTime()) {
-		const [error] = await safePromise(
+		const deleteWatcher = await Watcher.direct(
 			db.delete(sessionTable).where(eq(sessionTable.id, session.id)),
 		);
-		if (error) {
-			return [error];
+
+		if (!deleteWatcher.success) {
+			return deleteWatcher;
 		}
-		return [undefined, { session: null, user: null }];
+
+		return watcherOk({ session: null, user: null });
 	}
 
 	if (Date.now() >= session.expiresAt.getTime() - 1000 * 60 * 60 * 24 * 15) {
 		session.expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
-		const [error] = await safePromise(
-			db
-				.update(sessionTable)
-				.set({
-					expiresAt: session.expiresAt,
-				})
-				.where(eq(sessionTable.id, session.id)),
+
+		const updateWatcher = await Watcher.direct(
+			db.update(sessionTable).set({ expiresAt: session.expiresAt }),
 		);
-		if (error) {
-			return [error];
+
+		if (!updateWatcher.success) {
+			return updateWatcher;
 		}
 	}
-	return [undefined, { session, user }];
+	return watcherOk({ session, user });
 }
 
 export async function invalidateSession(
 	sessionId: string,
-): Promise<ResultNoData> {
-	const [error] = await safePromise(
+): AsyncWatcherResultEmpty {
+	const deleteWatcher = await Watcher.direct(
 		db.delete(sessionTable).where(eq(sessionTable.id, sessionId)),
 	);
-	if (error) {
-		return {
-			ok: false,
-			error,
-		};
+
+	if (!deleteWatcher.success) {
+		return deleteWatcher;
 	}
 
-	return {
-		ok: true,
-	};
+	return watcherOkEmpty();
 }
 
 export const getCurrentSession = cache(
-	async (): Promise<SessionValidationResult> => {
+	async (): AsyncWatcherResult<SessionValidationResult> => {
 		const cks = await cookies();
 		const token = cks.get("session")?.value ?? null;
 		if (token === null) {
-			return { session: null, user: null };
-		}
-		const [error, data] = await validateSessionToken(token);
-		if (error) {
-			return { session: null, user: null };
+			return watcherOk({ session: null, user: null });
 		}
 
-		return data;
+		const result = await validateSessionToken(token);
+		if (!result.success) {
+			return watcherOk({ session: null, user: null });
+		}
+
+		return result;
 	},
 );
 
@@ -160,24 +166,19 @@ export async function deleteSessionTokenCookie(): Promise<void> {
 
 export async function setSessionAs2FAVerified(
 	sessionId: string,
-): Promise<ResultNoData> {
-	const [error] = await safePromise(
+): AsyncWatcherResultEmpty {
+	const updateWatcher = await Watcher.direct(
 		db
 			.update(sessionTable)
 			.set({ twoFactorVerified: true })
 			.where(eq(sessionTable.id, sessionId)),
 	);
 
-	if (error) {
-		return {
-			ok: false,
-			error,
-		};
+	if (!updateWatcher.success) {
+		return updateWatcher;
 	}
 
-	return {
-		ok: true,
-	};
+	return watcherOkEmpty();
 }
 
 export type SessionValidationResult =
