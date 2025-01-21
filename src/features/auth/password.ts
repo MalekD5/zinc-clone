@@ -30,15 +30,15 @@ export async function verifyPasswordStrength(
 	const hash = encodeHexLowerCase(sha1(new TextEncoder().encode(password)));
 	const hashPrefix = hash.slice(0, 5);
 
-	const responseWatcher = await SafeResultWrapper.direct(
+	const responseSafeResult = await SafeResultWrapper.direct(
 		fetch(`https://api.pwnedpasswords.com/range/${hashPrefix}`),
 	);
 
-	if (!responseWatcher.success) {
+	if (!responseSafeResult.success) {
 		return false;
 	}
 
-	const response = responseWatcher.value;
+	const response = responseSafeResult.value;
 	const data = await response.text();
 	const items = data.split("\n");
 	for (const hashSuffix of hashForEach(items)) {

@@ -1,3 +1,5 @@
+import "server-only";
+
 import { db } from "@/db/drizzle";
 import { type User, userTable } from "@/db/schema";
 import {
@@ -23,7 +25,7 @@ export async function createUser(
 ): AsyncResult<User> {
 	const hashedPassword = await hashPassword(password);
 
-	const updateWatcher = await SafeResultWrapper.direct(
+	const updateSafeResult = await SafeResultWrapper.direct(
 		db
 			.insert(userTable)
 			.values({
@@ -35,25 +37,25 @@ export async function createUser(
 			.returning(),
 	);
 
-	if (!updateWatcher.success) {
-		return updateWatcher;
+	if (!updateSafeResult.success) {
+		return updateSafeResult;
 	}
 
-	return srOk(updateWatcher.value[0]);
+	return srOk(updateSafeResult.value[0]);
 }
 
 export async function getUserById(id: string): AsyncResult<User | undefined> {
-	const selectWatcher = await SafeResultWrapper.direct(
+	const selectSafeResult = await SafeResultWrapper.direct(
 		db.query.userTable.findFirst({
 			where: eq(userTable.id, id),
 		}),
 	);
 
-	if (!selectWatcher.success) {
-		return selectWatcher;
+	if (!selectSafeResult.success) {
+		return selectSafeResult;
 	}
 
-	const user = selectWatcher.value;
+	const user = selectSafeResult.value;
 
 	return srOk(user);
 }
@@ -61,17 +63,17 @@ export async function getUserById(id: string): AsyncResult<User | undefined> {
 export async function getUserByEmail(
 	email: string,
 ): AsyncResult<User | undefined> {
-	const selectWatcher = await SafeResultWrapper.direct(
+	const selectSafeResult = await SafeResultWrapper.direct(
 		db.query.userTable.findFirst({
 			where: eq(userTable.email, email),
 		}),
 	);
 
-	if (!selectWatcher.success) {
-		return selectWatcher;
+	if (!selectSafeResult.success) {
+		return selectSafeResult;
 	}
 
-	const user = selectWatcher.value;
+	const user = selectSafeResult.value;
 
 	return srOk(user);
 }
@@ -82,15 +84,15 @@ export async function updateUserPassword(
 ): AsyncResultEmpty {
 	const hashedPassword = await hashPassword(password);
 
-	const updateWatcher = await SafeResultWrapper.direct(
+	const updateSafeResult = await SafeResultWrapper.direct(
 		db
 			.update(userTable)
 			.set({ hashedPassword })
 			.where(eq(userTable.id, userId)),
 	);
 
-	if (!updateWatcher.success) {
-		return updateWatcher;
+	if (!updateSafeResult.success) {
+		return updateSafeResult;
 	}
 
 	return srOkEmpty();

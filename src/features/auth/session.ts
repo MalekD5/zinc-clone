@@ -38,12 +38,12 @@ export async function createSession(
 		twoFactorVerified: flags.twoFactorVerified,
 	};
 
-	const insertResult = await SafeResultWrapper.instance(
+	const insertSafeResult = await SafeResultWrapper.instance(
 		db.insert(sessionTable).values(session),
 	);
 
 	// either maps to a session or safe error result
-	const mappedInsertResult = insertResult.map((_) => session);
+	const mappedInsertResult = insertSafeResult.map((_) => session);
 
 	// session or safe error result
 	return mappedInsertResult.get();
@@ -83,12 +83,12 @@ export async function validateSessionToken(
 	const { user, session } = resultingSession;
 
 	if (Date.now() >= session.expiresAt.getTime()) {
-		const deleteWatcher = await SafeResultWrapper.direct(
+		const deleteSafeResult = await SafeResultWrapper.direct(
 			db.delete(sessionTable).where(eq(sessionTable.id, session.id)),
 		);
 
-		if (!deleteWatcher.success) {
-			return deleteWatcher;
+		if (!deleteSafeResult.success) {
+			return deleteSafeResult;
 		}
 
 		return srOk({ session: null, user: null });
@@ -97,24 +97,24 @@ export async function validateSessionToken(
 	if (Date.now() >= session.expiresAt.getTime() - 1000 * 60 * 60 * 24 * 15) {
 		session.expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
 
-		const updateWatcher = await SafeResultWrapper.direct(
+		const updateSafeResult = await SafeResultWrapper.direct(
 			db.update(sessionTable).set({ expiresAt: session.expiresAt }),
 		);
 
-		if (!updateWatcher.success) {
-			return updateWatcher;
+		if (!updateSafeResult.success) {
+			return updateSafeResult;
 		}
 	}
 	return srOk({ session, user });
 }
 
 export async function invalidateSession(sessionId: string): AsyncResultEmpty {
-	const deleteWatcher = await SafeResultWrapper.direct(
+	const deleteSafeResult = await SafeResultWrapper.direct(
 		db.delete(sessionTable).where(eq(sessionTable.id, sessionId)),
 	);
 
-	if (!deleteWatcher.success) {
-		return deleteWatcher;
+	if (!deleteSafeResult.success) {
+		return deleteSafeResult;
 	}
 
 	return srOkEmpty();
@@ -165,15 +165,15 @@ export async function deleteSessionTokenCookie(): Promise<void> {
 export async function setSessionAs2FAVerified(
 	sessionId: string,
 ): AsyncResultEmpty {
-	const updateWatcher = await SafeResultWrapper.direct(
+	const updateSafeResult = await SafeResultWrapper.direct(
 		db
 			.update(sessionTable)
 			.set({ twoFactorVerified: true })
 			.where(eq(sessionTable.id, sessionId)),
 	);
 
-	if (!updateWatcher.success) {
-		return updateWatcher;
+	if (!updateSafeResult.success) {
+		return updateSafeResult;
 	}
 
 	return srOkEmpty();
