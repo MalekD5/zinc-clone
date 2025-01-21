@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Watcher } from "@/lib/watcher";
+import { SafeResultWrapper } from "@/lib/safe-result";
 import { hash, verify } from "@node-rs/argon2";
 import { sha1 } from "@oslojs/crypto/sha1";
 import { encodeHexLowerCase } from "@oslojs/encoding";
@@ -30,7 +30,7 @@ export async function verifyPasswordStrength(
 	const hash = encodeHexLowerCase(sha1(new TextEncoder().encode(password)));
 	const hashPrefix = hash.slice(0, 5);
 
-	const responseWatcher = await Watcher.direct(
+	const responseWatcher = await SafeResultWrapper.direct(
 		fetch(`https://api.pwnedpasswords.com/range/${hashPrefix}`),
 	);
 

@@ -3,12 +3,12 @@ import "server-only";
 import { db } from "@/db/drizzle";
 import { type Session, type User, sessionTable, userTable } from "@/db/schema";
 import {
-	type AsyncWatcherResult,
-	type AsyncWatcherResultEmpty,
-	Watcher,
-	watcherOk,
-	watcherOkEmpty,
-} from "@/lib/watcher";
+	type AsyncResult,
+	type AsyncResultEmpty,
+	SafeResultWrapper,
+	srOk,
+	srOkEmpty,
+} from "@/lib/safe-result";
 import { sha256 } from "@oslojs/crypto/sha2";
 import {
 	encodeBase32LowerCaseNoPadding,
@@ -29,7 +29,7 @@ export async function createSession(
 	token: string,
 	userId: number,
 	flags: SessionFlags,
-): AsyncWatcherResult<Session> {
+): AsyncResult<Session> {
 	const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
 	const session: Session = {
 		id: sessionId,
@@ -38,7 +38,7 @@ export async function createSession(
 		twoFactorVerified: flags.twoFactorVerified,
 	};
 
-	const insertResult = await Watcher.instance(
+	const insertResult = await SafeResultWrapper.instance(
 		db.insert(sessionTable).values(session),
 	);
 
@@ -51,10 +51,10 @@ export async function createSession(
 
 export async function validateSessionToken(
 	token: string,
-): AsyncWatcherResult<SessionValidationResult> {
+): AsyncResult<SessionValidationResult> {
 	const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
 
-	const activeSessionsInstance = await Watcher.instance(
+	const activeSessionsInstance = await SafeResultWrapper.instance(
 		db
 			.select({ user: userTable, session: sessionTable })
 			.from(sessionTable)
@@ -83,7 +83,7 @@ export async function validateSessionToken(
 	const { user, session } = resultingSession;
 
 	if (Date.now() >= session.expiresAt.getTime()) {
-		const deleteWatcher = await Watcher.direct(
+		const deleteWatcher = await SafeResultWrapper.direct(
 			db.delete(sessionTable).where(eq(sessionTable.id, session.id)),
 		);
 
@@ -91,13 +91,13 @@ export async function validateSessionToken(
 			return deleteWatcher;
 		}
 
-		return watcherOk({ session: null, user: null });
+		return srOk({ session: null, user: null });
 	}
 
 	if (Date.now() >= session.expiresAt.getTime() - 1000 * 60 * 60 * 24 * 15) {
 		session.expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
 
-		const updateWatcher = await Watcher.direct(
+		const updateWatcher = await SafeResultWrapper.direct(
 			db.update(sessionTable).set({ expiresAt: session.expiresAt }),
 		);
 
@@ -105,13 +105,11 @@ export async function validateSessionToken(
 			return updateWatcher;
 		}
 	}
-	return watcherOk({ session, user });
+	return srOk({ session, user });
 }
 
-export async function invalidateSession(
-	sessionId: string,
-): AsyncWatcherResultEmpty {
-	const deleteWatcher = await Watcher.direct(
+export async function invalidateSession(sessionId: string): AsyncResultEmpty {
+	const deleteWatcher = await SafeResultWrapper.direct(
 		db.delete(sessionTable).where(eq(sessionTable.id, sessionId)),
 	);
 
@@ -119,20 +117,20 @@ export async function invalidateSession(
 		return deleteWatcher;
 	}
 
-	return watcherOkEmpty();
+	return srOkEmpty();
 }
 
 export const getCurrentSession = cache(
-	async (): AsyncWatcherResult<SessionValidationResult> => {
+	async (): AsyncResult<SessionValidationResult> => {
 		const cks = await cookies();
 		const token = cks.get("session")?.value ?? null;
 		if (token === null) {
-			return watcherOk({ session: null, user: null });
+			return srOk({ session: null, user: null });
 		}
 
 		const result = await validateSessionToken(token);
 		if (!result.success) {
-			return watcherOk({ session: null, user: null });
+			return srOk({ session: null, user: null });
 		}
 
 		return result;
@@ -166,8 +164,8 @@ export async function deleteSessionTokenCookie(): Promise<void> {
 
 export async function setSessionAs2FAVerified(
 	sessionId: string,
-): AsyncWatcherResultEmpty {
-	const updateWatcher = await Watcher.direct(
+): AsyncResultEmpty {
+	const updateWatcher = await SafeResultWrapper.direct(
 		db
 			.update(sessionTable)
 			.set({ twoFactorVerified: true })
@@ -178,7 +176,7 @@ export async function setSessionAs2FAVerified(
 		return updateWatcher;
 	}
 
-	return watcherOkEmpty();
+	return srOkEmpty();
 }
 
 export type SessionValidationResult =

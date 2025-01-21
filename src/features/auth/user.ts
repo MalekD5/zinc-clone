@@ -1,13 +1,13 @@
 import { db } from "@/db/drizzle";
 import { type User, userTable } from "@/db/schema";
-import { userNameSchema } from "@/lib/validation";
 import {
-	type AsyncWatcherResult,
-	type AsyncWatcherResultEmpty,
-	Watcher,
-	watcherOk,
-	watcherOkEmpty,
-} from "@/lib/watcher";
+	type AsyncResult,
+	type AsyncResultEmpty,
+	SafeResultWrapper,
+	srOk,
+	srOkEmpty,
+} from "@/lib/safe-result";
+import { userNameSchema } from "@/lib/validation";
 import { eq } from "drizzle-orm";
 import { hashPassword } from "./password";
 
@@ -20,10 +20,10 @@ export async function createUser(
 	firstName: string,
 	lastName: string,
 	password: string,
-): AsyncWatcherResult<User> {
+): AsyncResult<User> {
 	const hashedPassword = await hashPassword(password);
 
-	const updateWatcher = await Watcher.direct(
+	const updateWatcher = await SafeResultWrapper.direct(
 		db
 			.insert(userTable)
 			.values({
@@ -39,13 +39,11 @@ export async function createUser(
 		return updateWatcher;
 	}
 
-	return watcherOk(updateWatcher.value[0]);
+	return srOk(updateWatcher.value[0]);
 }
 
-export async function getUserById(
-	id: string,
-): AsyncWatcherResult<User | undefined> {
-	const selectWatcher = await Watcher.direct(
+export async function getUserById(id: string): AsyncResult<User | undefined> {
+	const selectWatcher = await SafeResultWrapper.direct(
 		db.query.userTable.findFirst({
 			where: eq(userTable.id, id),
 		}),
@@ -57,13 +55,13 @@ export async function getUserById(
 
 	const user = selectWatcher.value;
 
-	return watcherOk(user);
+	return srOk(user);
 }
 
 export async function getUserByEmail(
 	email: string,
-): AsyncWatcherResult<User | undefined> {
-	const selectWatcher = await Watcher.direct(
+): AsyncResult<User | undefined> {
+	const selectWatcher = await SafeResultWrapper.direct(
 		db.query.userTable.findFirst({
 			where: eq(userTable.email, email),
 		}),
@@ -75,16 +73,16 @@ export async function getUserByEmail(
 
 	const user = selectWatcher.value;
 
-	return watcherOk(user);
+	return srOk(user);
 }
 
 export async function updateUserPassword(
 	userId: string,
 	password: string,
-): AsyncWatcherResultEmpty {
+): AsyncResultEmpty {
 	const hashedPassword = await hashPassword(password);
 
-	const updateWatcher = await Watcher.direct(
+	const updateWatcher = await SafeResultWrapper.direct(
 		db
 			.update(userTable)
 			.set({ hashedPassword })
@@ -95,5 +93,5 @@ export async function updateUserPassword(
 		return updateWatcher;
 	}
 
-	return watcherOkEmpty();
+	return srOkEmpty();
 }

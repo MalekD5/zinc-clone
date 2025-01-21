@@ -1,4 +1,4 @@
-type WatcherResult<T> =
+type SafeResult<T> =
 	| {
 			success: true;
 			value: T;
@@ -8,21 +8,21 @@ type WatcherResult<T> =
 			error: Error;
 	  };
 
-export type AsyncWatcherResult<T> = Promise<WatcherResult<T>>;
-export type AsyncWatcherResultEmpty = AsyncWatcherResult<null>;
+export type AsyncResult<T> = Promise<SafeResult<T>>;
+export type AsyncResultEmpty = AsyncResult<null>;
 
-export class Watcher<T> {
-	constructor(private readonly result: WatcherResult<T>) {}
+export class SafeResultWrapper<T> {
+	constructor(private readonly result: SafeResult<T>) {}
 
 	static ok<T>(value: T) {
-		return new Watcher<T>({ success: true, value });
+		return new SafeResultWrapper<T>({ success: true, value });
 	}
 
 	static err<T>(error: Error) {
-		return new Watcher<T>({ success: false, error });
+		return new SafeResultWrapper<T>({ success: false, error });
 	}
 
-	static async direct<T>(promise: Promise<T>): AsyncWatcherResult<T> {
+	static async direct<T>(promise: Promise<T>): AsyncResult<T> {
 		try {
 			const data = await promise;
 			return {
@@ -44,8 +44,8 @@ export class Watcher<T> {
 	}
 
 	static async instance<T>(promise: Promise<T>) {
-		const result = await Watcher.direct(promise);
-		return new Watcher(result);
+		const result = await SafeResultWrapper.direct(promise);
+		return new SafeResultWrapper(result);
 	}
 
 	/**
@@ -53,11 +53,11 @@ export class Watcher<T> {
 	 * @param fn Function to apply.
 	 * @returns A new Result instance.
 	 */
-	map<U>(fn: (value: T) => U): Watcher<U> {
+	map<U>(fn: (value: T) => U): SafeResultWrapper<U> {
 		if (this.result.success) {
-			return Watcher.ok<U>(fn(this.result.value));
+			return SafeResultWrapper.ok<U>(fn(this.result.value));
 		}
-		return Watcher.err<U>(this.result.error);
+		return SafeResultWrapper.err<U>(this.result.error);
 	}
 
 	/**
@@ -65,11 +65,11 @@ export class Watcher<T> {
 	 * @param fn Function to apply.
 	 * @returns A new Result instance.
 	 */
-	flatMap<U>(fn: (value: T) => Watcher<U>): Watcher<U> {
+	flatMap<U>(fn: (value: T) => SafeResultWrapper<U>): SafeResultWrapper<U> {
 		if (this.result.success) {
 			return fn(this.result.value);
 		}
-		return Watcher.err<U>(this.result.error);
+		return SafeResultWrapper.err<U>(this.result.error);
 	}
 
 	/**
@@ -120,25 +120,25 @@ export class Watcher<T> {
 			return this;
 		}
 
-		return Watcher.ok(value[0]);
+		return SafeResultWrapper.ok(value[0]);
 	}
 }
 
-export function watcherOkEmpty(): WatcherResult<null> {
+export function srOkEmpty(): SafeResult<null> {
 	return {
 		success: true,
 		value: null,
 	};
 }
 
-export function watcherOk<T>(value: T): WatcherResult<T> {
+export function srOk<T>(value: T): SafeResult<T> {
 	return {
 		success: true,
 		value,
 	};
 }
 
-export function watcherResultErr<T>(error: Error): WatcherResult<T> {
+export function srResultErr<T>(error: Error): SafeResult<T> {
 	return {
 		success: false,
 		error,
